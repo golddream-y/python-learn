@@ -1,7 +1,8 @@
 import requests
+from string import Template
 from pyquery import PyQuery as pq
 
-baseUrl = "https://movie.douban.com/top250"
+baseUrl = Template('https://movie.douban.com/top250?start=${startPage}&filter=')
 
 reqParams = {"header": {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36",
@@ -11,20 +12,29 @@ reqParams = {"header": {
 doubanList = []
 
 
-def get_douban_html():
-    return requests.get(baseUrl, headers=reqParams["header"])
+def get_douban_html(startPage):
+    return requests.get(baseUrl.substitute(startPage=startPage), headers=reqParams["header"])
 
-def parseHtm():
-    doubanHtml = get_douban_html().text
+
+def parseHtm(doubanHtml):
     dHtml = pq(doubanHtml)
-    dHtml.attr( class_='grid_view')
+    dHtml.attr(class_='grid_view')
     childrenList = dHtml.children().items('.hd')
     for index, cl in enumerate(childrenList):
-          for ccIndex, ccl in enumerate(cl.find('a').children().items()):
+        for ccIndex, ccl in enumerate(cl.find('a').children().items()):
             if ccIndex == 0:
-                doubanList.append({"No":index+1,"cName":ccl.text()})
+                doubanList.append(ccl.text())
+
+
+def getAllPageList():
+    startPage = 0
+    while startPage < 250:
+        doubanHtml = get_douban_html(startPage)
+        parseHtm(doubanHtml.text)
+        startPage += 25
 
 
 if __name__ == '__main__':
-    parseHtm()
+    getAllPageList()
     print(doubanList)
+    print(len(doubanList))
